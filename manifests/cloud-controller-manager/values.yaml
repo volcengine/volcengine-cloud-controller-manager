@@ -1,0 +1,50 @@
+account:
+  ak: ""
+  sk: ""
+  accountID: ""
+  region: cn-beijing
+  topHost: open.volcengineapi.com
+  vpcID: ""
+  subnetID: ""
+  subnetIDs: []
+  networkModel: vpc-cni
+  serviceName: vke
+  clusterID: ""
+
+metrics:
+  enabled: true
+  port: 8081
+  portName: metrics
+
+service:
+  enabled: true
+  type: ClusterIP
+  webhookPort: 9443
+  controllerHealthPort: 9099
+  controllerMetricsPort: 8081
+  webhookHealthPort: 9441
+  webhookMetricsPort: 8082
+  annotations: {}
+  labels: {}
+
+controller:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 500Mi
+  image:
+    registry: ""  # 镜像仓库地址
+    name: cloud-controller-manager
+    tag: v1.35.0-public-beta.1
+  affinity: {}
+  componentSetting:
+    logLevel: 2  # 日志打印等级
+    concurrentServiceSyncs: 1  # 处理 LoadBalancer 类型的 service 的并发度
+
+  serviceAccount:
+    create: true
+    name: ""

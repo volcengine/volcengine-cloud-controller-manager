@@ -1,0 +1,21 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "common.names.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "common.labels.standard" . | nindent 4}}
+    {{- if .Values.service.labels }}
+      {{ toYaml .Values.service.labels | indent 4}}
+    {{- end}}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  {{- if .Values.metrics.enabled }}
+    - name: {{ .Values.metrics.portName }}
+      port: {{ .Values.metrics.port }}
+      protocol: TCP
+      targetPort: {{ .Values.metrics.portName }}
+  {{- end }}
+  selector: {{- include "common.labels.matchLabels" . | nindent 4 }}
+{{- end}}
