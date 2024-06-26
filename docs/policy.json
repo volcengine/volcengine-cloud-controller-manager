@@ -1,0 +1,44 @@
+{
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "vpc:Describe*",
+                "vpc:AddBandwidthPackageIp",
+                "vpc:RemoveBandwidthPackageIp"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "clb:Describe*",
+                "clb:CreateLoadBalancer",
+                "clb:CreateRules",
+                "clb:CreateServerGroup",
+                "clb:CreateListener",
+                "clb:AddServerGroupBackendServers",
+                "clb:ModifyLoadBalancerAttributes",
+                "clb:ModifyListenerAttributes",
+                "clb:ModifyServerGroupAttributes",
+                "clb:ModifyRules",
+                "clb:RemoveServerGroupBackendServers",
+                "clb:DeleteLoadBalancer",
+                "clb:DeleteServerGroup",
+                "clb:DeleteListener",
+                "clb:DeleteRules",
+                "clb:TagResources",
+                "clb:UntagResources",
+                "clb:ListTagsForResources",
+                "clb:EnableAccessLog",
+                "clb:DisableAccessLog",
+                "clb:ConvertLoadBalancerBillingType"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}

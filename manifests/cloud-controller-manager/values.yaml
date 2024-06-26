@@ -1,31 +1,22 @@
+# Copyright (2024) Beijing Volcano Engine Technology Ltd.
 account:
-  ak: ""
-  sk: ""
-  accountID: ""
-  region: cn-beijing
-  topHost: open.volcengineapi.com
-  vpcID: ""
-  subnetID: ""
-  subnetIDs: []
-  networkModel: vpc-cni
-  serviceName: vke
-  clusterID: ""
+  ak: ""  # Volcengine account ak
+  sk: ""  # Volcengine account sk
 
-metrics:
-  enabled: true
-  port: 8081
-  portName: metrics
+  region: ""
+  topHost: open.volcengineapi.com
+  vpcID: ""  # Volcengine VPC ID
+  subnetIDs: []   # The subnets of the vpc, used to allocate ip for clb
+  clusterID: ""  # The unique identifier
+  projectName: default  # The name of project, default value is default
 
 service:
   enabled: true
   type: ClusterIP
-  webhookPort: 9443
-  controllerHealthPort: 9099
-  controllerMetricsPort: 8081
-  webhookHealthPort: 9441
-  webhookMetricsPort: 8082
+  metrics:
+    port: 8081
+    portName: metrics
   annotations: {}
-  labels: {}
 
 controller:
   replicas: 1
@@ -37,14 +28,16 @@ controller:
       cpu: 500m
       memory: 500Mi
   image:
-    registry: ""  # 镜像仓库地址
+    registry:  open-registry-cn-beijing.cr.volces.com/vke
     name: cloud-controller-manager
-    tag: v1.35.0-public-beta.1
+    tag: v1.35.0-public
   affinity: {}
+  labels: {}
   componentSetting:
-    logLevel: 2  # 日志打印等级
-    concurrentServiceSyncs: 1  # 处理 LoadBalancer 类型的 service 的并发度
+    logLevel: 2  #
+    concurrentServiceSyncs: 1
+    loadBalancerClass: volcengine.com/clb  # The service.spec.loadBalancerClass, default is volcengine.com/clb
+    watchServiceWithoutClass: false  # Whether to reconcile the Service without the loadBalancerClass field
 
-  serviceAccount:
-    create: true
-    name: ""
+    authenticationMode: inCluster  # inCluster or useKubeconfig
+    serviceAccountName: ""

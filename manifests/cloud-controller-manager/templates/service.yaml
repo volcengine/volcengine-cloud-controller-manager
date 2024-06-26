@@ -1,3 +1,4 @@
+# Copyright (2024) Beijing Volcano Engine Technology Ltd.
 {{- if .Values.service.enabled }}
 apiVersion: v1
 kind: Service
@@ -5,17 +6,15 @@ metadata:
   name: {{ template "common.names.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels: {{- include "common.labels.standard" . | nindent 4}}
-    {{- if .Values.service.labels }}
-      {{ toYaml .Values.service.labels | indent 4}}
-    {{- end}}
+{{- if .Values.service.annotations }}
+  annotations: {{ toYaml .Values.service.annotations | indent 4}}
+{{- end}}
 spec:
   type: {{ .Values.service.type }}
   ports:
-  {{- if .Values.metrics.enabled }}
-    - name: {{ .Values.metrics.portName }}
-      port: {{ .Values.metrics.port }}
+    - name: {{ .Values.service.metrics.portName }}
+      port: {{ .Values.service.metrics.port }}
       protocol: TCP
-      targetPort: {{ .Values.metrics.portName }}
-  {{- end }}
+      targetPort: {{ .Values.service.metrics.portName }}
   selector: {{- include "common.labels.matchLabels" . | nindent 4 }}
 {{- end}}

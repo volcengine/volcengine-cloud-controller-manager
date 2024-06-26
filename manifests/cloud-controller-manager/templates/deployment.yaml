@@ -1,10 +1,10 @@
+# Copyright (2024) Beijing Volcano Engine Technology Ltd.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "common.names.fullname" . }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    component: {{ template "common.names.fullname" . }}
+  labels:  {{- include "common.labels.standard" . | nindent 4}}
 spec:
   replicas: {{ default "1" .Values.controller.replicas }}
   selector:
@@ -16,7 +16,7 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      labels: {{- include "common.labels.matchLabels" . | nindent 8 }}
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
     spec:
     {{- if .Values.controller.affinity }}
       affinity: {{ toYaml .Values.controller.affinity | nindent 8 }}
@@ -24,65 +24,86 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                component: {{ template "common.names.fullname" . }}
-            topologyKey: kubernetes.io/hostname
+            - labelSelector:
+                matchLabels:
+                  component: {{ template "common.names.fullname" . }}
+              topologyKey: kubernetes.io/hostname
     {{- end }}
+    {{- if eq .Values.controller.componentSetting.authenticationMode "inCluster" }}
       automountServiceAccountToken: true
+    {{- end }}
       serviceAccountName: {{ template "common.auth.serviceAccountName" . }}
       containers:
-      - command:
-        - /app/cloud-controller-manager
-        # - --authentication-kubeconfig=/etc/kubernetes/cloud-controller-manager.conf
-        # - --authorization-kubeconfig=/etc/kubernetes/cloud-controller-manager.conf
-        # - --kubeconfig=/etc/kubernetes/cloud-controller-manager.conf
-        - --cloud-config=/etc/config/config.json
-        - --cloud-provider=volcengine
-        - --feature-gates=LegacyNodeRoleBehavior=false
-        - --concurrent-service-syncs={{ .Values.controller.componentSetting.concurrentServiceSyncs }}
-        - --v={{ default "2" .Values.controller.componentSetting.logLevel }}
-        - --leader-elect=true
-        - --controllers=service
-        - --configure-cloud-routes=false
-        - --allow-untagged-cloud=true
-        env:
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.namespace
-        - name: INSTANCE_IP
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: status.podIP
-        image: "{{ .Values.controller.image.registry }}/{{ .Values.controller.image.name }}:{{ .Values.controller.image.tag }}"
-        imagePullPolicy: IfNotPresent
-        name: cloud-controller-manager
-        ports:
-        - containerPort: {{ .Values.metrics.port }}
-          name: {{ .Values.metrics.portName }}
-          protocol: TCP
-        resources: {{- toYaml .Values.controller.resources | nindent 10 }}
-        volumeMounts:
-        - mountPath: /etc/config
-          name: cloud-config
-          readOnly: true
+        - command:
+            - /app/cloud-controller-manager
+      {{- if eq .Values.controller.componentSetting.authenticationMode "useKubeconfig" }}
+            - --kubeconfig=/etc/kubernetes/cloud-controller-manager.conf
+      {{- end }}
+            - --cloud-config=/etc/config/config.json
+            - --cloud-provider=volcengine
+            - --feature-gates=LegacyNodeRoleBehavior=false
+            - --concurrent-service-syncs={{ .Values.controller.componentSetting.concurrentServiceSyncs }}
+            - --v={{ default "2" .Values.controller.componentSetting.logLevel }}
+            - --leader-elect=true
+            - --leader-elect-resource-name={{ template "common.names.fullname" . }}
+            - --leader-elect-resource-namespace={{ .Release.Namespace }}
+            - --controllers=service
+            - --configure-cloud-routes=false
+            - --allow-untagged-cloud=true
+            - --metrics-bind-port={{ .Values.service.metrics.port }}
+      {{- if .Values.controller.componentSetting.loadBalancerClass }}
+            - --loadbalancer-class={{ .Values.controller.componentSetting.loadBalancerClass }}
+      {{- end }}
+      {{- if .Values.controller.componentSetting.watchServiceWithoutClass }}
+            - --watch-service-without-class=true
+      {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INSTANCE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          image: "{{ .Values.controller.image.registry }}/{{ .Values.controller.image.name }}:{{ .Values.controller.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          name: cloud-controller-manager
+          ports:
+            - containerPort: {{ .Values.service.metrics.port }}
+              name: {{ .Values.service.metrics.portName }}
+              protocol: TCP
+          resources: {{- toYaml .Values.controller.resources | nindent 10 }}
+          volumeMounts:
+            - mountPath: /etc/config
+              name: cloud-config
+              readOnly: true
+      {{- if eq .Values.controller.componentSetting.authenticationMode "useKubeconfig" }}
+            - mountPath: /etc/kubernetes/
+              name: k8s
+      {{- end }}
       dnsPolicy: ClusterFirst
       topologySpreadConstraints:
-      - labelSelector:
-          matchLabels: {{- include "common.labels.matchLabels" . | nindent 12 }}
-        maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: ScheduleAnyway
+        - labelSelector:
+            matchLabels: {{- include "common.labels.matchLabels" . | nindent 12 }}
+          maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
       volumes:
-      - name: cloud-config
-        secret:
-          defaultMode: 420
-          secretName: {{ template "common.names.fullname" . }}
+        - name: cloud-config
+          secret:
+            defaultMode: 420
+            secretName: {{ template "common.names.fullname" . }}-config
+    {{- if eq .Values.controller.componentSetting.authenticationMode "useKubeconfig" }}
+        - name: k8s
+          configMap:
+            defaultMode: 420
+            name: {{ template "common.names.fullname" . }}-k8s
+    {{- end }}
