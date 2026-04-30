@@ -29,3 +29,6 @@ See the [Usage](docs/usage.md) document.
 See the [Trouble Shooting](docs/troubleshooting.md) document.
 ## Metrics
 See the [Metrics](docs/metrics.md) document.
+## Security and privacy
+This project takes security seriously.
+For vulnerability reporting and supported versions, see [SECURITY.md](SECURITY.md)
